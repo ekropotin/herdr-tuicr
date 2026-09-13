@@ -51,22 +51,26 @@ case "$no_context_format" in
     ;;
 esac
 
-# --- select_active_session ---------------------------------------------------
+# --- select_touched_session ---------------------------------------------------
 
-single_session_json=$(cat "$ROOT/tests/fixtures/sessions_single.json")
-result=$(select_active_session "$single_session_json")
-assert_eq "single session needs no active flag" "worktree/abc123" "$(printf '%s' "$result" | "$JQ_BIN" -r '.slug')"
+before_empty=$(cat "$ROOT/tests/fixtures/sessions_before_empty.json")
+after_new=$(cat "$ROOT/tests/fixtures/sessions_after_new.json")
+result=$(select_touched_session "$before_empty" "$after_new")
+assert_eq "picks a brand-new session (path absent before)" "proj@main/staged-and-unstaged/ccc333" \
+  "$(printf '%s' "$result" | "$JQ_BIN" -r '.slug')"
 
-one_active_json=$(cat "$ROOT/tests/fixtures/sessions_one_active.json")
-result=$(select_active_session "$one_active_json")
-assert_eq "picks the lone active session among several" "commits/base..head" "$(printf '%s' "$result" | "$JQ_BIN" -r '.slug')"
+stale=$(cat "$ROOT/tests/fixtures/sessions_stale.json")
+assert_status "returns 2 (not an error) when nothing changed - stale session must not be reused" 2 \
+  select_touched_session "$stale" "$stale"
 
-ambiguous_json=$(cat "$ROOT/tests/fixtures/sessions_ambiguous.json")
-assert_status "fails on multiple sessions with no single active one" 1 \
-  select_active_session "$ambiguous_json"
+after_touched=$(cat "$ROOT/tests/fixtures/sessions_after_touched.json")
+result=$(select_touched_session "$stale" "$after_touched")
+assert_eq "picks the session whose updated_at changed at the same path" "herdr-tuicr@main/staged-and-unstaged/bbb222" \
+  "$(printf '%s' "$result" | "$JQ_BIN" -r '.slug')"
 
-empty_json='[]'
-assert_status "fails on zero sessions" 1 select_active_session "$empty_json"
+after_two_new=$(cat "$ROOT/tests/fixtures/sessions_after_two_new.json")
+assert_status "fails when more than one session changed at once" 1 \
+  select_touched_session "$before_empty" "$after_two_new"
 
 # --- summary ------------------------------------------------------------------
 

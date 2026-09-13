@@ -1,0 +1,4 @@
+[
+  {"slug":"a@main/x","path":"/sessions/x.json","updated_at":"t1","comment_count":0,"reviewed_count":0,"file_count":1,"anchor":"main","active":false},
+  {"slug":"b@main/y","path":"/sessions/y.json","updated_at":"t2","comment_count":0,"reviewed_count":0,"file_count":1,"anchor":"main","active":false}
+]

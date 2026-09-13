@@ -41,16 +41,30 @@ main() {
     die "HERDR_TUICR_ORIGIN_PANE is not set; this pane must be opened by review-paste.sh/review-submit.sh"
   fi
 
+  # Snapshot sessions before running tuicr so the session it just touched can
+  # be told apart from any stale session already on file for this repo (see
+  # select_touched_session's comment for why `active`/count-based selection
+  # doesn't work here).
+  local list_before
+  list_before=$(run_tuicr_json review list --repo "$repo_dir") || die "Could not read back tuicr sessions"
+
   log_info "Reviewing $repo_dir"
   tuicr -w
   local tuicr_status=$?
   log_info "tuicr exited with status $tuicr_status"
 
-  local list_json
-  list_json=$(run_tuicr_json review list --repo "$repo_dir") || die "Could not read back the tuicr session"
+  local list_after
+  list_after=$(run_tuicr_json review list --repo "$repo_dir") || die "Could not read back the tuicr session"
 
-  local session
-  session=$(select_active_session "$list_json") || die "Could not determine which tuicr session to read"
+  local session session_status=0
+  session=$(select_touched_session "$list_before" "$list_after") || session_status=$?
+  if [[ "$session_status" -eq 2 ]]; then
+    log_info "Nothing to review - not sending anything"
+    close_own_pane "$own_pane"
+    exit 0
+  elif [[ "$session_status" -ne 0 ]]; then
+    die "Could not determine which tuicr session to read"
+  fi
 
   local slug reviewed_count file_count
   slug=$(printf '%s\n' "$session" | "$JQ_BIN" -er '.slug')

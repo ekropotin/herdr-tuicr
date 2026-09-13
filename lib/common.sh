@@ -124,35 +124,48 @@ git_context() {
   printf 'repo: %s, branch: %s' "$(basename "$root")" "$branch"
 }
 
-# Picks the one tuicr session to read back from `tuicr review list` JSON.
-# Prints the chosen session object on success. Mirrors the SKILL.md
-# convention: a lone session needs no `active` check; with several, exactly
-# one `"active": true` breaks the tie; anything else is genuinely ambiguous
-# and is left for the human to resolve (a stale review pane, not a crash).
-select_active_session() {
-  local list_json="$1"
-  local count active_count
+# Picks the one session that OUR `tuicr -w` invocation just touched, given
+# `tuicr review list` JSON captured before and after running it.
+#
+# `active`/count-based heuristics (an earlier version of this function used
+# "a lone session needs no active check") turned out to be unsound for this
+# use case: by the time this script reads a session back, tuicr has already
+# exited, so `active` is always false, and a persisted session lingers on
+# disk indefinitely after the review that created it. Confirmed live: with a
+# clean working tree, `tuicr -w` finds nothing to review and exits without
+# touching any session, but a stale session from a *previous, unrelated*
+# review was still the only one on file — the old "count == 1 needs no
+# active check" shortcut picked it up and dispatched its stale comments as
+# if they were fresh. Comparing before/after by (path, updated_at) — tuicr
+# leaves a session's updated_at untouched when it isn't the one just
+# reviewed, confirmed live across repeated runs — avoids that regardless of
+# how many stale sessions exist.
+#
+# Prints the touched session object and returns 0 on exactly one match.
+# Returns 2 (not 1) when nothing changed, so callers can tell "genuinely
+# nothing to review" apart from a real ambiguity error.
+select_touched_session() {
+  local before_json="$1"
+  local after_json="$2"
+  local touched count
 
-  count=$(printf '%s\n' "$list_json" | "$JQ_BIN" -er 'length') || return 1
+  touched=$("$JQ_BIN" -n --argjson before "$before_json" --argjson after "$after_json" '
+    ($before | map({(.path): .updated_at}) | add // {}) as $before_map |
+    [ $after[] | select(($before_map[.path] // "") != .updated_at) ]
+  ') || return 1
+
+  count=$(printf '%s' "$touched" | "$JQ_BIN" -er 'length') || return 1
 
   if [[ "$count" -eq 0 ]]; then
-    log_error "No tuicr sessions found for this repository"
-    return 1
+    return 2
   fi
 
   if [[ "$count" -eq 1 ]]; then
-    printf '%s\n' "$list_json" | "$JQ_BIN" -er '.[0]'
+    printf '%s' "$touched" | "$JQ_BIN" -er '.[0]'
     return 0
   fi
 
-  active_count=$(printf '%s\n' "$list_json" | "$JQ_BIN" -er '[.[] | select(.active == true)] | length')
-
-  if [[ "$active_count" -eq 1 ]]; then
-    printf '%s\n' "$list_json" | "$JQ_BIN" -er '[.[] | select(.active == true)][0]'
-    return 0
-  fi
-
-  log_error "Ambiguous tuicr sessions for this repository ($count found, $active_count marked active)"
+  log_error "Ambiguous tuicr sessions: $count sessions changed by one review run"
   return 1
 }
 
