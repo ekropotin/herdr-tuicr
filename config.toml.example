@@ -1,0 +1,14 @@
+# Copy this file to:
+#   $(herdr plugin config-dir ekropotin.herdr-tuicr)/config.toml
+# and edit. All keys are optional; the plugin uses the defaults shown below
+# when the file or a key is missing.
+
+# Which side the review pane opens on, relative to the pane that triggered
+# it (the pane where your agent is running).
+#
+# One of: right, down, left.
+#
+# `right` and `down` are opened directly. `left` is emulated with an extra
+# `herdr pane swap` right after opening, since Herdr's pane split/open only
+# place new panes to the right or below.
+pane_direction = "right"

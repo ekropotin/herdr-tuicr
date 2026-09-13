@@ -1,0 +1,28 @@
+id = "ekropotin.herdr-tuicr"
+name = "herdr-tuicr"
+version = "0.1.0"
+min_herdr_version = "0.8.0"
+description = "tuicr code review in a Herdr pane, with automatic handoff to the agent that opened it."
+platforms = ["linux", "macos"]
+
+[[actions]]
+id = "review-paste"
+title = "tuicr review (paste to agent)"
+contexts = ["pane"]
+command = ["sh", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/bin/review-paste.sh\""]
+
+[[actions]]
+id = "review-submit"
+title = "tuicr review (submit to agent)"
+contexts = ["pane"]
+command = ["sh", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/bin/review-submit.sh\""]
+
+# Split pane opened programmatically by review-paste.sh/review-submit.sh via
+# `herdr plugin pane open --entrypoint review`, which passes the origin pane
+# id and paste/submit mode via --env. Never bound to a key or palette entry
+# directly.
+[[panes]]
+id = "review"
+title = "tuicr review"
+placement = "split"
+command = ["sh", "-c", "exec bash \"$HERDR_PLUGIN_ROOT/bin/review-pane.sh\""]

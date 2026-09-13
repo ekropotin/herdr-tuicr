@@ -1,0 +1,4 @@
+[
+  {"slug":"worktree/abc123","kind":"local","active":false,"reviewed_count":3,"file_count":3},
+  {"slug":"commits/base..head","kind":"local","active":true,"reviewed_count":1,"file_count":5}
+]

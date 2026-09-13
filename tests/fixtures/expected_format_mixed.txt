@@ -1,0 +1,15 @@
+Code review comments from tuicr (repo: demo, branch: main):
+
+1. src/main.rs:42
+   [issue] Handle the empty case here.
+
+2. src/lib.rs:10-15
+   [suggestion] Consider extracting this loop.
+
+3. README.md
+   [note] Update install instructions.
+
+4. (review)
+   [praise] Nice cleanup overall.
+
+Please address each comment. Reply with what you changed per item.

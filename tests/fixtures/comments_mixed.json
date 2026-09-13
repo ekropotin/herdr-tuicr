@@ -1,0 +1,6 @@
+[
+  {"id":"c1","location":"line","path":"src/main.rs","start_line":42,"end_line":42,"side":"new","comment_type":"issue","author":"user","lifecycle_state":"open","content":"Handle the empty case here."},
+  {"id":"c2","location":"line_range","path":"src/lib.rs","start_line":10,"end_line":15,"side":"new","comment_type":"suggestion","author":"user","lifecycle_state":"open","content":"Consider extracting this loop."},
+  {"id":"c3","location":"file","path":"README.md","start_line":null,"end_line":null,"side":null,"comment_type":"note","author":"user","lifecycle_state":"open","content":"Update install instructions."},
+  {"id":"c4","location":"review","path":null,"start_line":null,"end_line":null,"side":null,"comment_type":"praise","author":"user","lifecycle_state":"open","content":"Nice cleanup overall."}
+]
