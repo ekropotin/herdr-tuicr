@@ -6,10 +6,13 @@ Code review comments from tuicr (repo: demo, branch: main):
 2. src/lib.rs:10-15
    [suggestion] Consider extracting this loop.
 
-3. README.md
-   [note] Update install instructions.
+3. README.md:49 [old]
+   Update install instructions.
 
-4. (review)
+4. README.md
+   [note] File looks fine overall.
+
+5. review
    [praise] Nice cleanup overall.
 
 Please address each comment. Reply with what you changed per item.

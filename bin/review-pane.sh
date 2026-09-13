@@ -15,10 +15,22 @@ source "$ROOT/lib/common.sh"
 # shellcheck source=../lib/format.sh
 source "$ROOT/lib/format.sh"
 
+# Herdr closes this declared pane the moment this process exits — there is no
+# lingering shell behind it the way `pane run`'s injected-command panes have.
+# So an error exit must hold the pane open long enough to actually be read,
+# instead of logging and vanishing in the same instant (confirmed live: a
+# plain `log_error; exit 1` here closes the pane within ~1s of opening it).
+die() {
+  log_error "$*"
+  printf '\nPress any key to close this pane.\n'
+  read -n 1 -s -r -- _ || true
+  exit 1
+}
+
 main() {
-  require_command "$HERDR_BIN" "Herdr"
-  require_command "$JQ_BIN" "jq"
-  require_command tuicr "tuicr"
+  command -v "$HERDR_BIN" &>/dev/null || die "$HERDR_BIN not found on PATH"
+  command -v "$JQ_BIN" &>/dev/null || die "$JQ_BIN not found on PATH"
+  command -v tuicr &>/dev/null || die "tuicr not found on PATH"
 
   local own_pane="${HERDR_PANE_ID:-}"
   local origin_pane="${HERDR_TUICR_ORIGIN_PANE:-}"
@@ -26,8 +38,7 @@ main() {
   local repo_dir="$PWD"
 
   if [[ -z "$origin_pane" ]]; then
-    log_error "HERDR_TUICR_ORIGIN_PANE is not set; this pane must be opened by review-paste.sh/review-submit.sh"
-    exit 1
+    die "HERDR_TUICR_ORIGIN_PANE is not set; this pane must be opened by review-paste.sh/review-submit.sh"
   fi
 
   log_info "Reviewing $repo_dir"
@@ -36,14 +47,10 @@ main() {
   log_info "tuicr exited with status $tuicr_status"
 
   local list_json
-  list_json=$(run_tuicr_json review list --repo "$repo_dir") || exit 1
+  list_json=$(run_tuicr_json review list --repo "$repo_dir") || die "Could not read back the tuicr session"
 
   local session
-  if ! session=$(select_active_session "$list_json"); then
-    # select_active_session already logged the reason; leave the pane open
-    # (no close_own_pane call) so the human can read it before closing by hand.
-    exit 1
-  fi
+  session=$(select_active_session "$list_json") || die "Could not determine which tuicr session to read"
 
   local slug reviewed_count file_count
   slug=$(printf '%s\n' "$session" | "$JQ_BIN" -er '.slug')
@@ -51,7 +58,7 @@ main() {
   file_count=$(printf '%s\n' "$session" | "$JQ_BIN" -er '.file_count')
 
   local comments_json
-  comments_json=$(run_tuicr_json review comments --repo "$repo_dir" --session "$slug") || exit 1
+  comments_json=$(run_tuicr_json review comments --repo "$repo_dir" --session "$slug") || die "Could not read back review comments"
 
   local comment_count
   comment_count=$(printf '%s\n' "$comments_json" | "$JQ_BIN" -er 'length')
@@ -71,10 +78,7 @@ main() {
   text=$(format_review_comments "$comments_json" "$header_context")
 
   log_info "Sending $comment_count comment(s) to pane $origin_pane (mode: $mode)"
-  if ! dispatch_review "$mode" "$origin_pane" "$text"; then
-    log_error "Failed to deliver comments to pane $origin_pane"
-    exit 1
-  fi
+  dispatch_review "$mode" "$origin_pane" "$text" || die "Failed to deliver comments to pane $origin_pane"
 
   close_own_pane "$own_pane"
 }

@@ -106,7 +106,7 @@ open_review_pane() {
     --env "HERDR_TUICR_ORIGIN_PANE=$origin_pane" \
     --env "HERDR_TUICR_MODE=$mode") || return 1
 
-  new_pane_id=$(printf '%s\n' "$open_json" | "$JQ_BIN" -er '.result.pane.pane_id') || return 1
+  new_pane_id=$(printf '%s\n' "$open_json" | "$JQ_BIN" -er '.result.plugin_pane.pane.pane_id') || return 1
 
   if [[ "$swap_left" == true ]]; then
     "$HERDR_BIN" pane swap --direction left --pane "$new_pane_id" >/dev/null

@@ -5,6 +5,15 @@
 # shape of herdr-nvim's prompt.lua (numbered items, then a closing
 # instruction), adapted to tuicr's comment fields instead of editor marks and
 # code snippets.
+#
+# `location` is tuicr's own ready-to-display string (e.g. "src/main.rs:42",
+# "src/main.rs:10-15", "src/main.rs:49 [old]", "README.md" for a file
+# comment, or the literal "review" for a review-level comment) — verified
+# live against `tuicr review comments` output for all four target types, so
+# this reuses it directly rather than reconstructing it from path/
+# start_line/end_line/side. `comment_type` comes back as "none" for a plain
+# inline TUI comment (as opposed to one added with an explicit --type via
+# `tuicr review add`), so that tag is omitted rather than printed literally.
 format_review_comments() {
   local comments_json="$1"
   local header_context="${2:-}"
@@ -17,20 +26,8 @@ format_review_comments() {
     to_entries[] |
     (.key + 1) as $n |
     .value as $c |
-    (
-      if $c.location == "line" or $c.location == "line_range" then
-        if ($c.end_line // $c.start_line) != $c.start_line then
-          "\($c.path):\($c.start_line)-\($c.end_line)"
-        else
-          "\($c.path):\($c.start_line)"
-        end
-      elif $c.location == "file" then
-        $c.path
-      else
-        "(review)"
-      end
-    ) as $ref |
-    "\($n). \($ref)\n   [\($c.comment_type)] \($c.content)\n"
+    (if ($c.comment_type // "none") == "none" then "" else "[\($c.comment_type)] " end) as $tag |
+    "\($n). \($c.location)\n   \($tag)\($c.content)\n"
   '
 
   printf 'Please address each comment. Reply with what you changed per item.\n'

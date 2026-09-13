@@ -46,19 +46,24 @@ Add to `~/.config/herdr/config.toml`:
 
 ```toml
 [[keys.command]]
-key = "prefix+r"
+key = "prefix+a"
 type = "plugin_action"
 command = "ekropotin.herdr-tuicr.review-paste"
 description = "tuicr review (paste)"
 
 [[keys.command]]
-key = "prefix+R"
+key = "prefix+shift+a"
 type = "plugin_action"
 command = "ekropotin.herdr-tuicr.review-submit"
 description = "tuicr review (auto-submit)"
 ```
 
 Then `herdr server reload-config`.
+
+Pick keys that are free in *your* config: `prefix+r`/`prefix+shift+r` look
+tempting but are Herdr's built-in `resize_mode`/`reload_config` — check
+`herdr --default-config` and your own `[[keys.command]]` entries before
+binding.
 
 ## Configure the plugin
 
