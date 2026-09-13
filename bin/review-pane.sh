@@ -59,8 +59,7 @@ main() {
   local session session_status=0
   session=$(select_touched_session "$list_before" "$list_after") || session_status=$?
   if [[ "$session_status" -eq 2 ]]; then
-    log_info "Nothing to review - not sending anything"
-    close_own_pane "$own_pane"
+    notify_and_close "$own_pane" "Nothing to review (clean working tree) - not sending anything"
     exit 0
   elif [[ "$session_status" -ne 0 ]]; then
     die "Could not determine which tuicr session to read"

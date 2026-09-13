@@ -206,6 +206,20 @@ run_tuicr_json() {
   printf '%s' "$out"
 }
 
+# Prints $2, waits for a keypress, then closes the pane. For a "nothing
+# happened" outcome the human never got to watch unfold interactively (a
+# clean working tree means tuicr exits before ever entering its TUI) —
+# reported live: the pane opened and closed again so fast it read as a
+# meaningless flash. Unlike die(), this isn't an error, so no red text.
+notify_and_close() {
+  local own_pane="$1"
+  local message="$2"
+  log_info "$message"
+  printf '\nPress any key to close this pane.\n'
+  read -n 1 -s -r -- _ || true
+  close_own_pane "$own_pane"
+}
+
 close_own_pane() {
   local pane="$1"
   [[ -n "$pane" ]] || return 0
