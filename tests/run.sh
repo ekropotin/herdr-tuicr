@@ -72,6 +72,26 @@ after_two_new=$(cat "$ROOT/tests/fixtures/sessions_after_two_new.json")
 assert_status "fails when more than one session changed at once" 1 \
   select_touched_session "$before_empty" "$after_two_new"
 
+# --- diff_new_comments ---------------------------------------------------------
+
+comments_before_one=$(cat "$ROOT/tests/fixtures/comments_before_one.json")
+
+comments_after_unchanged=$(cat "$ROOT/tests/fixtures/comments_after_unchanged.json")
+result=$(diff_new_comments "$comments_before_one" "$comments_after_unchanged")
+assert_eq "a resave with nothing new yields zero new comments" "0" "$(printf '%s' "$result" | "$JQ_BIN" -er 'length')"
+
+comments_after_one_new=$(cat "$ROOT/tests/fixtures/comments_after_one_new.json")
+result=$(diff_new_comments "$comments_before_one" "$comments_after_one_new")
+assert_eq "only the genuinely new comment is returned" "c2" "$(printf '%s' "$result" | "$JQ_BIN" -er '.[0].id')"
+assert_eq "exactly one new comment" "1" "$(printf '%s' "$result" | "$JQ_BIN" -er 'length')"
+
+comments_after_edited=$(cat "$ROOT/tests/fixtures/comments_after_edited.json")
+result=$(diff_new_comments "$comments_before_one" "$comments_after_edited")
+assert_eq "an edited comment (same id, new content) counts as new" "1" "$(printf '%s' "$result" | "$JQ_BIN" -er 'length')"
+
+result=$(diff_new_comments '[]' "$comments_after_unchanged")
+assert_eq "a brand-new session's comments are all new" "1" "$(printf '%s' "$result" | "$JQ_BIN" -er 'length')"
+
 # --- summary ------------------------------------------------------------------
 
 if [[ "$failures" -gt 0 ]]; then

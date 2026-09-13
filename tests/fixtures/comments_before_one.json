@@ -1,0 +1,3 @@
+[
+  {"id":"c1","location":"f.txt:2","path":"f.txt","start_line":2,"end_line":2,"side":"new","comment_type":"none","lifecycle_state":"local_draft","content":"first pass comment"}
+]

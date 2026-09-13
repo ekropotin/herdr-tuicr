@@ -48,6 +48,11 @@ main() {
   local list_before
   list_before=$(run_tuicr_json review list --repo "$repo_dir") || die "Could not read back tuicr sessions"
 
+  # Must happen before tuicr -w runs: `tuicr review comments` always reads
+  # live state, so this is the only point where "before" can be captured.
+  local comments_before_by_path
+  comments_before_by_path=$(snapshot_comments_by_path "$list_before" "$repo_dir")
+
   log_info "Reviewing $repo_dir"
   tuicr -w
   local tuicr_status=$?
@@ -59,28 +64,42 @@ main() {
   local session session_status=0
   session=$(select_touched_session "$list_before" "$list_after") || session_status=$?
   if [[ "$session_status" -eq 2 ]]; then
-    notify_and_close "$own_pane" "Nothing to review (clean working tree) - not sending anything"
+    notify_and_close "$own_pane" "Nothing to review - not sending anything"
     exit 0
   elif [[ "$session_status" -ne 0 ]]; then
     die "Could not determine which tuicr session to read"
   fi
 
-  local slug reviewed_count file_count
+  local slug path reviewed_count file_count
   slug=$(printf '%s\n' "$session" | "$JQ_BIN" -er '.slug')
+  path=$(printf '%s\n' "$session" | "$JQ_BIN" -er '.path')
   reviewed_count=$(printf '%s\n' "$session" | "$JQ_BIN" -er '.reviewed_count')
   file_count=$(printf '%s\n' "$session" | "$JQ_BIN" -er '.file_count')
 
-  local comments_json
-  comments_json=$(run_tuicr_json review comments --repo "$repo_dir" --session "$slug") || die "Could not read back review comments"
+  local comments_after
+  comments_after=$(run_tuicr_json review comments --repo "$repo_dir" --session "$slug") || die "Could not read back review comments"
 
-  local comment_count
-  comment_count=$(printf '%s\n' "$comments_json" | "$JQ_BIN" -er 'length')
+  # Look up this same session's pre-run comments from the snapshot taken
+  # before tuicr -w ran (empty if this path didn't exist yet, i.e. a
+  # brand-new session). tuicr bumps a session's updated_at on any explicit
+  # save regardless of new content, so select_touched_session alone can't
+  # tell "genuinely new comments" apart from "reopened and quit with :wq,
+  # nothing changed" — diff_new_comments does, by comparing the comments
+  # themselves.
+  local comments_before
+  comments_before=$(printf '%s\n' "$comments_before_by_path" | "$JQ_BIN" -er --arg path "$path" '.[$path] // []')
 
-  if [[ "$comment_count" -eq 0 ]]; then
+  local new_comments
+  new_comments=$(diff_new_comments "$comments_before" "$comments_after")
+
+  local new_count
+  new_count=$(printf '%s\n' "$new_comments" | "$JQ_BIN" -er 'length')
+
+  if [[ "$new_count" -eq 0 ]]; then
     if [[ "$reviewed_count" -eq "$file_count" ]]; then
-      log_info "Review complete, nothing to flag ($reviewed_count/$file_count files reviewed) - not sending anything"
+      log_info "Review complete, nothing new to flag ($reviewed_count/$file_count files reviewed) - not sending anything"
     else
-      log_warn "No comments and review incomplete ($reviewed_count/$file_count files reviewed) - not sending anything"
+      log_warn "No new comments and review incomplete ($reviewed_count/$file_count files reviewed) - not sending anything"
     fi
     close_own_pane "$own_pane"
     exit 0
@@ -88,9 +107,9 @@ main() {
 
   local header_context text
   header_context=$(git_context "$repo_dir") || header_context=""
-  text=$(format_review_comments "$comments_json" "$header_context")
+  text=$(format_review_comments "$new_comments" "$header_context")
 
-  log_info "Sending $comment_count comment(s) to pane $origin_pane (mode: $mode)"
+  log_info "Sending $new_count new comment(s) to pane $origin_pane (mode: $mode)"
   dispatch_review "$mode" "$origin_pane" "$text" || die "Failed to deliver comments to pane $origin_pane"
 
   close_own_pane "$own_pane"

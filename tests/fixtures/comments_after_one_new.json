@@ -1,0 +1,4 @@
+[
+  {"id":"c1","location":"f.txt:2","path":"f.txt","start_line":2,"end_line":2,"side":"new","comment_type":"none","lifecycle_state":"local_draft","content":"first pass comment"},
+  {"id":"c2","location":"f.txt:3","path":"f.txt","start_line":3,"end_line":3,"side":"new","comment_type":"issue","lifecycle_state":"local_draft","content":"second pass comment"}
+]

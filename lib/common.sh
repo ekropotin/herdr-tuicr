@@ -169,6 +169,64 @@ select_touched_session() {
   return 1
 }
 
+# Builds a JSON object {path: [comments...]} for every session in $1 (a
+# `tuicr review list` array), by calling `tuicr review comments` for each.
+#
+# MUST be called with $1 captured before running `tuicr -w`, and its result
+# kept around rather than recomputed afterward: `tuicr review comments`
+# always reads the session's *current* on-disk state, so calling it again
+# after tuicr has already exited just returns the post-run state a second
+# time, not a "before" snapshot. Confirmed live: doing exactly that (looking
+# up a session by slug and re-reading its comments after the fact) made
+# diff_new_comments compare the after-state against itself and silently drop
+# every genuinely new comment.
+#
+# A session whose comments fail to read (e.g. a dangling `tuicr review list`
+# entry pointing at an already-deleted session file — confirmed live that
+# tuicr never prunes those on its own) maps to an empty array instead of
+# aborting the whole review.
+snapshot_comments_by_path() {
+  local list_json="$1"
+  local repo_dir="$2"
+  local count
+  count=$(printf '%s\n' "$list_json" | "$JQ_BIN" -er 'length') || { printf '{}'; return 0; }
+
+  local result='{}'
+  local i
+  for ((i = 0; i < count; i++)); do
+    local entry_path entry_slug entry_comments
+    entry_path=$(printf '%s\n' "$list_json" | "$JQ_BIN" -er ".[$i].path")
+    entry_slug=$(printf '%s\n' "$list_json" | "$JQ_BIN" -er ".[$i].slug")
+    entry_comments=$(tuicr review comments --repo "$repo_dir" --session "$entry_slug" 2>/dev/null) || entry_comments='[]'
+    result=$("$JQ_BIN" -n --argjson acc "$result" --arg path "$entry_path" --argjson comments "$entry_comments" \
+      '$acc + {($path): $comments}')
+  done
+
+  printf '%s' "$result"
+}
+
+# Prints the entries of $2 (comments after this run) that are new or edited
+# relative to $1 (the same session's comments before this run) — same (id,
+# content) pair present before means unchanged, dropped from the result.
+#
+# select_touched_session alone isn't enough to decide *what* to send: tuicr
+# bumps a session's updated_at on any explicit save, even :wq with nothing
+# new added. Confirmed live: reopening tuicr on an unchanged diff, adding
+# nothing, and quitting with :wq (not :q) re-sent the same already-delivered
+# comment a second time, because the session-level touch looked identical to
+# a real new comment. Diffing the comments themselves — not just the
+# session's metadata — is what actually answers "is there anything new to
+# hand the agent".
+diff_new_comments() {
+  local before_json="$1"
+  local after_json="$2"
+
+  "$JQ_BIN" -n --argjson before "$before_json" --argjson after "$after_json" '
+    ($before | map({(.id): .content}) | add // {}) as $before_map |
+    [ $after[] | select(($before_map[.id] // null) != .content) ]
+  '
+}
+
 # Sends the formatted review text to the origin pane: `submit` auto-presses
 # Enter via `herdr agent prompt`, anything else (paste) leaves it in the
 # input via `herdr pane send-text` — same two verbs herdr-nvim's dispatch.lua
