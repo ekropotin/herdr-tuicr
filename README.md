@@ -1,8 +1,11 @@
 # herdr-tuicr
 
-A [Herdr](https://herdr.dev) plugin that runs `tuicr` code review in a split
+A [Herdr](https://herdr.dev) plugin that runs [`tuicr`](https://github.com/agavra/tuicr) code review in a split
 pane and automatically hands the finished review back to whichever agent pane
 opened it — no manual copy/paste, no blocking agent tool call.
+
+> **⚠️ Early alpha.** This plugin is under active development; anticipate
+> breaking changes.
 
 ## Why
 
@@ -15,8 +18,7 @@ with `contexts = ["pane"]` receives the exact invoking pane in
 `HERDR_PANE_ID` — sends the finished review back to precisely the pane that
 opened it, even with several agent panes open at once.
 
-Two hotkeys are provided, mirroring herdr-nvim's `<leader>as` / `<leader>aS`
-split:
+Two hotkeys are provided:
 
 - **paste** — inserts the formatted comments into the origin pane's input;
   you press Enter.

@@ -60,8 +60,7 @@ plugin_config_value() {
 }
 
 # Resolves the repository directory to review from an origin pane id: the
-# foreground process's cwd, same field herdr-nvim and tuicr's own wrappers
-# rely on.
+# foreground process's cwd, same field tuicr's own wrappers rely on.
 resolve_repo_dir() {
   local pane_id="$1"
   local pane_json
@@ -114,8 +113,8 @@ open_review_pane() {
 }
 
 # Prints "repo: <name>, branch: <branch>" for a git checkout, or nothing (and
-# fails) for a jj-only workspace or non-repo directory — same best-effort,
-# silent-on-failure header context herdr-nvim's init.lua builds.
+# fails) for a jj-only workspace or non-repo directory — best-effort,
+# silent-on-failure header context.
 git_context() {
   local dir="$1"
   local root branch
@@ -229,8 +228,7 @@ diff_new_comments() {
 
 # Sends the formatted review text to the origin pane: `submit` auto-presses
 # Enter via `herdr agent prompt`, anything else (paste) leaves it in the
-# input via `herdr pane send-text` — same two verbs herdr-nvim's dispatch.lua
-# uses for the identical send/submit split.
+# input via `herdr pane send-text`.
 dispatch_review() {
   local mode="$1"
   local pane="$2"

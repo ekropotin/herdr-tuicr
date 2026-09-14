@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 # Sourced by bin/review-pane.sh. Not an entry point on its own.
 
-# Formats `tuicr review comments` JSON into an agent-facing prompt, in the
-# shape of herdr-nvim's prompt.lua (numbered items, then a closing
-# instruction), adapted to tuicr's comment fields instead of editor marks and
-# code snippets.
+# Formats `tuicr review comments` JSON into an agent-facing prompt: numbered
+# items, then a closing instruction.
 #
 # `location` is tuicr's own ready-to-display string (e.g. "src/main.rs:42",
 # "src/main.rs:10-15", "src/main.rs:49 [old]", "README.md" for a file
