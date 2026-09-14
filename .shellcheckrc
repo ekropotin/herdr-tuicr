@@ -1,0 +1,9 @@
+# Follow `source` into lib/*.sh — same as passing -x, so CI and local runs
+# agree. SCRIPTDIR makes each script's `# shellcheck source=../lib/...` hint
+# resolve relative to that script, not to wherever shellcheck is run from.
+external-sources=true
+source-path=SCRIPTDIR
+
+# jq programs are passed in single quotes on purpose: `$var` inside them is a
+# jq variable bound via --arg/--argjson, not a shell expansion.
+disable=SC2016

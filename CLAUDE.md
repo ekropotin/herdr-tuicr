@@ -11,6 +11,7 @@ See README.md for user-facing install/usage/config docs. This file covers develo
 ## Commands
 
 ```sh
+mise install                                  # dev tools pinned in mise.toml (shellcheck)
 tests/run.sh                                  # unit tests (bash + jq only, no herdr/tuicr needed)
 shellcheck bin/*.sh lib/*.sh tests/run.sh      # lint (what CI runs)
 ```
