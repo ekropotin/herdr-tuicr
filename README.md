@@ -22,6 +22,42 @@ split:
   you press Enter.
 - **submit** — inserts and submits automatically.
 
+## How it works
+
+```mermaid
+sequenceDiagram
+    actor Human
+    participant Origin as Origin pane<br/>(your agent)
+    participant Herdr
+    participant Review as Review pane<br/>(runs tuicr)
+
+    Human->>Origin: press prefix+a / prefix+shift+a
+    Herdr->>Herdr: action runs with contexts=["pane"]<br/>HERDR_PANE_ID = Origin
+    Herdr->>Origin: resolve cwd (herdr pane get)
+    Herdr->>Review: open split pane<br/>(origin pane id + paste/submit mode via --env)
+
+    Review->>Review: snapshot this repo's existing<br/>tuicr comments (before)
+    Review->>Human: tuicr -w opens interactively
+    Human->>Review: review the diff, add comments, quit
+
+    Review->>Review: diff comments vs. snapshot<br/>(only new/edited ones count)
+
+    alt nothing new since last time
+        Review->>Human: "Nothing to review" message,<br/>waits for a keypress
+    else new or edited comments found
+        Review->>Origin: deliver formatted comments<br/>(paste, or auto-submit)
+        Review->>Herdr: close self
+    end
+```
+
+The origin pane is the exact pane that had focus when you pressed the hotkey
+— not a same-tab guess — so this works correctly even with several agent
+panes open across different repos at once. Because tuicr keeps a review
+session around until you commit your changes, reopening tuicr on an
+unchanged diff shows your earlier comments again; the "diff comments vs.
+snapshot" step is what stops those from being re-sent to the agent a second
+time.
+
 ## Requirements
 
 - Herdr >= 0.8.0
@@ -77,7 +113,7 @@ opens on).
 1. With an agent running in a pane, press the bound hotkey.
 2. A `tuicr` review pane opens, scoped to that pane's working directory and
    the uncommitted working-tree diff (`tuicr -w`).
-3. Review, add comments, quit with `q`.
+3. Review, add comments, quit with `:q` (current tuicr versions disable plain `q`).
 4. The review pane closes itself and the formatted comments land in the
    input of the exact pane that triggered the review — pasted or
    auto-submitted depending on which hotkey you pressed.
